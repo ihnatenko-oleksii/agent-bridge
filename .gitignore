@@ -1,5 +1,25 @@
 agentbridge_langgraph_docs
+
 .env
 .venv
 .vscode
 .cursor
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Runtime / local data (when you add persistence)
+*.sqlite
+*.sqlite3
+.chroma/
