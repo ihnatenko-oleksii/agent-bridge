@@ -7,7 +7,12 @@ import uuid
 import gradio as gr
 
 from agentbridge.graph.helpers import format_graph_result, format_interrupt_payload
-from agentbridge.graph.runtime import flush_langsmith_traces, get_pending_interrupt, resume_recommendation, run_recommendation
+from agentbridge.graph.runtime import (
+    flush_langsmith_traces,
+    get_pending_interrupt,
+    resume_recommendation,
+    run_recommendation,
+)
 
 
 def gradio_respond(user_input: str, history, thread_id: str | None, pending_interrupt):
@@ -27,7 +32,9 @@ def gradio_respond(user_input: str, history, thread_id: str | None, pending_inte
             result = run_recommendation(user_input, thread_id=thread_id)
 
         pending_interrupt = get_pending_interrupt(result)
-        assistant_message = format_interrupt_payload(pending_interrupt) if pending_interrupt else format_graph_result(result)
+        assistant_message = (
+            format_interrupt_payload(pending_interrupt) if pending_interrupt else format_graph_result(result)
+        )
     except Exception as exc:
         pending_interrupt = None
         assistant_message = f"Error while running graph: {exc}"

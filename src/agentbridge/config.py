@@ -67,13 +67,13 @@ def get_settings() -> Settings:
     )
 
 
-def validate_runtime_settings(settings: Settings | None = None, *, require_langsmith: bool = True) -> Settings:
+def validate_runtime_settings(settings: Settings | None = None, *, require_langsmith: bool = False) -> Settings:
     settings = settings or get_settings()
 
     if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY is required for live graph execution.")
+        raise RuntimeError("OPENAI_API_KEY is required. Copy .env.example to .env and add your OpenAI key.")
     if not settings.serper_api_key:
-        raise RuntimeError("SERPER_API_KEY is required for live framework research.")
+        raise RuntimeError("SERPER_API_KEY is required for web research. Add a Serper key to .env.")
 
     if require_langsmith:
         if not settings.langsmith_api_key:

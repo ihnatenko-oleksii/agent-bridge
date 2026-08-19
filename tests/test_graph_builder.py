@@ -23,7 +23,9 @@ def test_route_after_input_check():
 
 
 def test_route_after_framework_research():
-    with_tool_call = AgentBridgeState(messages=[AIMessage(content="", tool_calls=[{"name": "search_web", "args": {"query": "x"}}])])
+    with_tool_call = AgentBridgeState(
+        messages=[AIMessage(content="", tool_calls=[{"name": "search_web", "args": {"query": "x"}, "id": "1"}])]
+    )
     without_tool_call = AgentBridgeState(messages=[AIMessage(content="done")])
 
     assert route_after_framework_research(with_tool_call) == "research_tools"

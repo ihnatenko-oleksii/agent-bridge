@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any, Protocol
+from urllib.parse import urlparse
 
 from langchain.tools import tool
 from langchain_community.utilities import GoogleSerperAPIWrapper
@@ -13,8 +15,7 @@ from agentbridge.schemas import SourceItem
 class SearchClient(Protocol):
     k: int
 
-    def results(self, query: str) -> dict[str, Any]:
-        ...
+    def results(self, query: str) -> dict[str, Any]: ...
 
 
 def classify_source(url: str) -> tuple[str, str]:
@@ -30,10 +31,23 @@ def classify_source(url: str) -> tuple[str, str]:
     return "other", "medium"
 
 
-def normalize_search_results(results: dict[str, Any], *, limit: int) -> list[dict[str, Any]]:
+def _is_http_url(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    parsed = urlparse(value.strip())
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def normalize_search_results(results: Any, *, limit: int) -> list[dict[str, Any]]:
+    """Convert a Serper response into safe, consistently shaped source records."""
+    if not isinstance(results, dict) or not isinstance(results.get("organic", []), list):
+        return []
+
     sources = []
     for item in results.get("organic", [])[:limit]:
-        url = item.get("link", "")
+        if not isinstance(item, dict) or not _is_http_url(item.get("link")):
+            continue
+        url = item["link"].strip()
         source_type, reliability = classify_source(url)
         sources.append(
             SourceItem(
@@ -52,6 +66,8 @@ def build_serper_client(*, k: int = 5) -> GoogleSerperAPIWrapper:
 
 
 def search_sources(query: str, *, search_client: SearchClient | None = None) -> list[dict[str, Any]]:
+    if not query.strip():
+        return []
     search_client = search_client or build_serper_client()
     return normalize_search_results(search_client.results(query), limit=search_client.k)
 
@@ -60,7 +76,10 @@ def build_search_tool(*, search_client: SearchClient | None = None):
     @tool
     def search_web(query: str) -> str:
         """Search the web for current information. Returns titles, URLs, and snippets to cite as sources."""
-        sources = search_sources(query, search_client=search_client)
+        try:
+            sources = search_sources(query, search_client=search_client)
+        except Exception as exc:
+            return json.dumps({"query": query, "error": f"Search provider failed: {type(exc).__name__}"})
         if not sources:
             return f"Query: {query}\nNo search results found."
 

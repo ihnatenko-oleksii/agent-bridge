@@ -12,16 +12,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("question", help="Framework-selection question to evaluate.")
     parser.add_argument("--thread-id", dest="thread_id", default=None, help="Optional LangGraph thread id.")
     parser.add_argument(
-        "--no-langsmith",
+        "--require-langsmith",
         action="store_true",
-        help="Skip LangSmith validation for local runs where tracing is disabled.",
+        help="Require LangSmith tracing configuration (optional by default).",
     )
     return parser
 
 
 def main() -> None:
     args = build_parser().parse_args()
-    result = run_recommendation(args.question, thread_id=args.thread_id, require_langsmith=not args.no_langsmith)
+    try:
+        result = run_recommendation(args.question, thread_id=args.thread_id, require_langsmith=args.require_langsmith)
+    except RuntimeError as exc:
+        parser = build_parser()
+        parser.error(str(exc))
     print(format_response(result))
 
 

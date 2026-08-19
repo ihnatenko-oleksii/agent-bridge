@@ -39,6 +39,12 @@ def test_normalize_search_results():
     ]
 
 
+def test_normalize_search_results_ignores_malformed_payloads():
+    assert normalize_search_results(None, limit=5) == []
+    assert normalize_search_results({"organic": "not-a-list"}, limit=5) == []
+    assert normalize_search_results({"organic": [None, {"link": "javascript:alert(1)"}]}, limit=5) == []
+
+
 def test_build_search_tool_formats_results():
     payload = {
         "organic": [
@@ -54,3 +60,14 @@ def test_build_search_tool_formats_results():
     response = tool.invoke({"query": "agent frameworks"})
     assert "Query: agent frameworks" in response
     assert "Release Notes" in response
+
+
+def test_search_tool_turns_provider_failure_into_model_visible_result():
+    class BrokenClient:
+        k = 5
+
+        def results(self, query):
+            raise TimeoutError("secret provider details")
+
+    response = build_search_tool(search_client=BrokenClient()).invoke({"query": "agent frameworks"})
+    assert response == '{"query": "agent frameworks", "error": "Search provider failed: TimeoutError"}'

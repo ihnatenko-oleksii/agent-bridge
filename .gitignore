@@ -23,3 +23,6 @@ __pycache__/
 *.sqlite
 *.sqlite3
 .chroma/
+# Coverage
+.coverage
+htmlcov/
