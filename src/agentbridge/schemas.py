@@ -85,7 +85,9 @@ class AgentBridgeState(BaseModel):
 class InputCheckResult(BaseModel):
     can_continue: bool = Field(description="True when the workflow can continue to context extraction.")
     user_question: str | None = Field(default=None, description="Cleaned framework-selection question or goal.")
-    platform_description: str | None = Field(default=None, description="Client/platform context found in the conversation.")
+    platform_description: str | None = Field(
+        default=None, description="Client/platform context found in the conversation."
+    )
     missing_items: list[str] = Field(default_factory=list)
     clarification_questions: list[str] = Field(default_factory=list)
 

@@ -71,7 +71,8 @@ If a field is not supported by the sources, write "unknown from sources".
 COMPARISON_SYSTEM_PROMPT = """
 Compare discovered frameworks against the extracted client context.
 The framework comparison table must contain only real frameworks, SDKs, or orchestration platforms.
-Do not include source categories, blog guidance, community guidance, tutorials, or documentation pages as framework rows.
+Do not include source categories, blog guidance, community guidance, tutorials,
+or documentation pages as framework rows.
 If two candidates belong to the same ecosystem, merge them unless they are clearly different implementation choices.
 Choose the highest client-fit option based on evidence, not popularity.
 Do not introduce new framework candidates. If evidence is weak, lower confidence and explain what is missing.
