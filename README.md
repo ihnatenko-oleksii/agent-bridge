@@ -52,8 +52,8 @@ AWS, need traceable decisions, and have a four-person backend team.
 
 - **Graph nodes:** `input_check` validates critical context; `client_context_extractor` creates requirements; `framework_research` plans tool calls and extracts evidence; `framework_analyst` creates candidate profiles; `comparison` scores fit; and `recommendation_writer` renders the decision.
 - **State:** `AgentBridgeState` is the graph contract. Messages use LangGraph's message reducer while durable artifacts—context, sources, facts, profiles, comparison, and final answer—have explicit fields.
-- **Tools:** `search_web` wraps Serper. It bounds results, rejects malformed/non-HTTP entries, classifies source types, normalizes snippets, and converts provider exceptions into a safe tool result the graph can reason about.
-- **Source validation:** model-produced facts are retained only when `source_url` exactly matches a normalized research source. Sources are URL-deduplicated and capped before downstream analysis.
+- **Tools:** `search_web` wraps Serper. It bounds results, rejects malformed/non-HTTP entries, canonicalizes and deduplicates URLs, classifies source types, normalizes snippets, and converts provider exceptions into a safe tool result the graph can reason about.
+- **Source validation:** model-produced facts are retained only when the canonical form of `source_url` matches a research source. Sources are URL-deduplicated and capped before downstream analysis.
 - **Checkpointing:** the compiled graph uses a checkpointer (in-memory by default), enabling `interrupt`/`Command(resume=...)` clarification without restarting research.
 - **Prompts:** prompts live separately from graph orchestration and assign narrow responsibilities to each model call. Pydantic schemas constrain every intermediate model response except the final Markdown presentation.
 - **Structured outputs:** requirements, sources, facts, framework profiles, and comparison scores are validated by Pydantic before entering graph state.
@@ -68,6 +68,8 @@ uv sync --group dev
 uv run agentbridge "Choose an agent framework for a Python support platform using PostgreSQL and AWS, with human approval for writes and a small backend team."
 ```
 
+The CLI interactively answers checkpointed clarification questions in the same LangGraph thread. Use `--non-interactive` when automation should print a pending clarification instead of reading stdin.
+
 LangSmith tracing is optional. To enforce tracing configuration, add its values to `.env` and pass `--require-langsmith`.
 
 Optional web UI:
@@ -81,7 +83,7 @@ If credentials are absent, the CLI exits with an actionable setup message rather
 
 ## Tests
 
-The suite exercises graph routing and compilation, state/result helpers, configuration validation, search normalization and provider failures, and source-to-claim validation without making network or model calls.
+The suite exercises graph routing and compilation, state/result helpers, configuration validation, search normalization and provider failures, interactive CLI resume behavior, and source-to-claim validation without making network or model calls.
 
 ```bash
 uv run --group dev ruff check .
