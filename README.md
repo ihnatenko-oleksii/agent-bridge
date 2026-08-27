@@ -4,6 +4,8 @@ AgentBridge is a LangGraph-based research and integration advisor for selecting 
 
 **Status: Working prototype.** The graph, live search tool, interrupt/resume flow, CLI, optional Gradio UI, checkpointing, structured intermediate artifacts, and deterministic test suite are implemented. Live recommendations require OpenAI and Serper credentials.
 
+**Evaluation:** [Public evaluation report](https://soapy-fortnight-d4a.notion.site/AgentBridge-Evaluation-Report-3c9ea87bee4c807a8a3dd6a4478ba7ee) — tracks recommendation quality, decision confidence, latency, token usage, and cost across iterations. Best recorded result: **22/25 quality, 84% decision confidence, and $0.0073/run**. From v7 to v9, quality improved from 18/25 to 22/25 while latency fell by ~73%, token usage by ~52%, and cost by ~17%.
+
 ## Why it exists
 
 Framework selection is rarely a feature checklist. The right choice depends on workflow control, state, data integrations, deployment constraints, human approval, observability, and the team's ability to operate the system. AgentBridge makes that decision process inspectable: research is separated from analysis, claims retain source URLs, and the recommendation is grounded in a structured client context rather than generic popularity.
