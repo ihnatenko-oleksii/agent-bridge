@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 
 import gradio as gr
@@ -13,6 +14,9 @@ from agentbridge.graph.runtime import (
     resume_recommendation,
     run_recommendation,
 )
+from agentbridge.ui.messages import format_runtime_error
+
+LOGGER = logging.getLogger(__name__)
 
 
 def gradio_respond(user_input: str, history, thread_id: str | None, pending_interrupt):
@@ -36,8 +40,9 @@ def gradio_respond(user_input: str, history, thread_id: str | None, pending_inte
             format_interrupt_payload(pending_interrupt) if pending_interrupt else format_graph_result(result)
         )
     except Exception as exc:
+        LOGGER.error("AgentBridge graph execution failed (%s)", type(exc).__name__)
         pending_interrupt = None
-        assistant_message = f"Error while running graph: {exc}"
+        assistant_message = format_runtime_error()
     finally:
         flush_langsmith_traces()
 
