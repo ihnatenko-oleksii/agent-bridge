@@ -12,7 +12,7 @@ from langgraph.types import interrupt
 from agentbridge.config import MAX_SEARCH_CALLS
 from agentbridge.graph.helpers import (
     as_compact_json,
-    dedupe_sources,
+    get_search_tool_calls,
     get_search_tool_outputs,
     get_user_question,
     resume_value_to_text,
@@ -26,6 +26,7 @@ from agentbridge.prompts import (
     RESEARCH_FACT_SYSTEM_PROMPT,
     RESEARCH_TOOL_SYSTEM_PROMPT,
 )
+from agentbridge.research import validate_research_evidence
 from agentbridge.schemas import (
     AgentBridgeState,
     ClientContextResult,
@@ -52,7 +53,7 @@ def route_after_input_check(state: AgentBridgeState) -> str:
 
 def route_after_framework_research(state: AgentBridgeState) -> str:
     last_message = state.messages[-1] if state.messages else None
-    if getattr(last_message, "tool_calls", None):
+    if get_search_tool_calls(last_message, limit=1):
         return "research_tools"
     return "framework_analyst"
 
@@ -135,7 +136,11 @@ def create_nodes(llm: BaseChatModel, search_tool) -> GraphNodes:
                     ),
                 ]
             )
-            tool_request = AIMessage(content=tool_request.content, tool_calls=(tool_request.tool_calls or [])[:MAX_SEARCH_CALLS])
+            tool_calls = get_search_tool_calls(tool_request, limit=MAX_SEARCH_CALLS)
+            if not tool_calls:
+                question = state.user_question or "AI agent and RAG frameworks official documentation"
+                tool_calls = [{"name": "search_web", "args": {"query": question}, "id": "fallback-search"}]
+            tool_request = AIMessage(content=tool_request.content, tool_calls=tool_calls)
             return {"messages": [tool_request]}
 
         research_result = research_result_model.invoke(
@@ -150,11 +155,9 @@ def create_nodes(llm: BaseChatModel, search_tool) -> GraphNodes:
             ]
         )
 
-        return {
-            "research_queries": research_result.research_queries[:MAX_SEARCH_CALLS],
-            "research_sources": dedupe_sources([source.model_dump() for source in research_result.sources]),
-            "raw_framework_facts": [fact.model_dump() for fact in research_result.raw_framework_facts],
-        }
+        evidence = validate_research_evidence(research_result)
+        evidence["research_queries"] = evidence["research_queries"][:MAX_SEARCH_CALLS]
+        return evidence
 
     def framework_analyst_node(state: AgentBridgeState) -> dict[str, Any]:
         result = framework_analyst_model.invoke(

@@ -6,7 +6,7 @@ import json
 import uuid
 from typing import Any
 
-from agentbridge.config import DEFAULT_RECURSION_LIMIT, MAX_SOURCES
+from agentbridge.config import DEFAULT_RECURSION_LIMIT, MAX_SEARCH_CALLS, MAX_SOURCES
 
 
 def get_user_question(state) -> str | None:
@@ -97,6 +97,34 @@ def get_search_tool_outputs(messages: list[Any]) -> list[dict[str, str]]:
             )
 
     return outputs
+
+
+def get_search_tool_calls(message: Any, *, limit: int = MAX_SEARCH_CALLS) -> list[dict[str, Any]]:
+    """Return bounded, valid search calls from a model message."""
+    if not isinstance(limit, int) or isinstance(limit, bool) or limit <= 0:
+        return []
+
+    calls = []
+    for index, tool_call in enumerate(getattr(message, "tool_calls", []) or []):
+        if len(calls) >= limit:
+            break
+        if not isinstance(tool_call, dict) or tool_call.get("name") != "search_web":
+            continue
+
+        args = tool_call.get("args")
+        query = args.get("query") if isinstance(args, dict) else None
+        if not isinstance(query, str) or not query.strip():
+            continue
+
+        calls.append(
+            {
+                "name": "search_web",
+                "args": {"query": query.strip()},
+                "id": tool_call.get("id") or f"search-{index}",
+            }
+        )
+
+    return calls
 
 
 def pretty_print_state_keys(state: dict[str, Any]) -> None:
