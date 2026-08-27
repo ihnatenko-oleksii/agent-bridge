@@ -16,6 +16,11 @@ def test_classify_source_urls():
     assert classify_source("https://medium.com/@example/frameworks") == ("technical_blog", "medium")
 
 
+def test_classify_source_does_not_trust_lookalike_hostnames():
+    assert classify_source("https://github.com.attacker.example/project") == ("other", "medium")
+    assert classify_source("https://medium.com.attacker.example/post") == ("other", "medium")
+
+
 def test_normalize_search_results():
     payload = {
         "organic": [
@@ -39,6 +44,36 @@ def test_normalize_search_results():
     ]
 
 
+def test_normalize_search_results_ignores_malformed_payloads():
+    assert normalize_search_results(None, limit=5) == []
+    assert normalize_search_results({"organic": "not-a-list"}, limit=5) == []
+    assert normalize_search_results({"organic": [None, {"link": "javascript:alert(1)"}]}, limit=5) == []
+    assert normalize_search_results({"organic": []}, limit=-1) == []
+
+
+def test_normalize_search_results_canonicalizes_urls_and_counts_valid_results():
+    payload = {
+        "organic": [
+            {"link": "not-a-url"},
+            {
+                "title": "Docs",
+                "link": "https://docs.example.com/guide/?utm_source=search#setup",
+                "snippet": "  Official\n docs  ",
+            },
+            {"title": "Duplicate", "link": "https://docs.example.com/guide"},
+            {"title": "Second", "link": "https://example.com/second"},
+        ]
+    }
+
+    normalized = normalize_search_results(payload, limit=2)
+
+    assert [source["url"] for source in normalized] == [
+        "https://docs.example.com/guide",
+        "https://example.com/second",
+    ]
+    assert normalized[0]["summary"] == "Official docs"
+
+
 def test_build_search_tool_formats_results():
     payload = {
         "organic": [
@@ -54,3 +89,14 @@ def test_build_search_tool_formats_results():
     response = tool.invoke({"query": "agent frameworks"})
     assert "Query: agent frameworks" in response
     assert "Release Notes" in response
+
+
+def test_search_tool_turns_provider_failure_into_model_visible_result():
+    class BrokenClient:
+        k = 5
+
+        def results(self, query):
+            raise TimeoutError("secret provider details")
+
+    response = build_search_tool(search_client=BrokenClient()).invoke({"query": "agent frameworks"})
+    assert response == '{"query": "agent frameworks", "error": "Search provider failed: TimeoutError"}'
