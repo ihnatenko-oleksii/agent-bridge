@@ -19,7 +19,7 @@ def get_runtime_graph():
     return build_graph()
 
 
-def prepare_runtime(*, require_langsmith: bool = True):
+def prepare_runtime(*, require_langsmith: bool = False):
     load_project_dotenv()
     validate_runtime_settings(get_settings(), require_langsmith=require_langsmith)
     return get_runtime_graph()
@@ -31,7 +31,7 @@ def run_recommendation(
     thread_id: str | None = None,
     platform_description: str | None = None,
     uploaded_document_ids: list[str] | None = None,
-    require_langsmith: bool = True,
+    require_langsmith: bool = False,
 ) -> dict[str, Any]:
     graph = prepare_runtime(require_langsmith=require_langsmith)
     state = AgentBridgeState(
@@ -43,7 +43,7 @@ def run_recommendation(
     return graph.invoke(state, config=make_graph_config(thread_id))
 
 
-def resume_recommendation(answer: str, *, thread_id: str, require_langsmith: bool = True) -> dict[str, Any]:
+def resume_recommendation(answer: str, *, thread_id: str, require_langsmith: bool = False) -> dict[str, Any]:
     graph = prepare_runtime(require_langsmith=require_langsmith)
     return graph.invoke(Command(resume=answer), config=make_graph_config(thread_id))
 
